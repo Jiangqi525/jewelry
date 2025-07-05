@@ -27,6 +27,7 @@ class NatalChart(models.Model):
         verbose_name = '命盘信息'
         verbose_name_plural = '用户命盘管理'
         unique_together = [('user', 'calculated_at')]
+        db_table = 'nat_chart'
 
     def __str__(self):
         return f"{self.user.username}的命盘 ({self.calculated_at.strftime('%Y-%m-%d')})"
@@ -34,14 +35,18 @@ class NatalChart(models.Model):
 class NumerologyAnalysis(models.Model):
     """数字能量分析表"""
     user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name='所属用户')
-    life_number = models.IntegerField('生命数字')
+    life_number = models.IntegerField('生命数字')  # 修正字段定义
     digital_patterns = models.JSONField('数字磁场模式', default=list,
-                                      help_text='识别到的数字磁场列表')
+                                        help_text='识别到的数字磁场列表')
     analyzed_at = models.DateTimeField('分析时间', auto_now_add=True)
 
     class Meta:
         verbose_name = '数字能量分析'
         verbose_name_plural = '数字能量管理'
+        db_table = 'numerology_analysis'
+
+    def __str__(self):
+        return f"{self.user.username}的数字能量分析"
 
     def __str__(self):
         return f"{self.user.username}的数字能量分析"

@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from datetime import datetime
+from jewellery.models import JewelryItem, Recommendation
 
 
 class User(AbstractUser):
@@ -18,9 +19,26 @@ class User(AbstractUser):
     created_at = models.DateTimeField('创建时间', auto_now_add=True)
     updated_at = models.DateTimeField('更新时间', auto_now=True)
 
+    # 解决反向访问器冲突
+    groups = models.ManyToManyField(
+        'auth.Group',
+        verbose_name='所属组',
+        related_name='custom_user_set',  # 添加唯一的related_name
+        blank=True,
+    )
+
+    user_permissions = models.ManyToManyField(
+        'auth.Permission',
+        verbose_name='用户权限',
+        related_name='custom_user_permissions_set',  # 添加唯一的related_name
+        blank=True,
+    )
+
+
     class Meta:
         verbose_name = '用户信息'
         verbose_name_plural = '用户信息管理'
+        db_table = 'user'
 
     def __str__(self):
         return f"{self.username} ({self.get_gender_display()})"
@@ -43,30 +61,33 @@ class User(AbstractUser):
         # 时辰计算：2小时为一个时辰（如0-2点为子时，2-4点为丑时）
         return (self.birth_datetime.hour // 2) + 1 if self.birth_datetime else None
 
+    class ClickRecord(models.Model):
+        user = models.ForeignKey('self', on_delete=models.CASCADE, verbose_name='用户')
+        jewelry = models.ForeignKey(
+            JewelryItem,  # 直接引用模型类
+            on_delete=models.CASCADE,
+            verbose_name='点击的珠宝',
+            blank=True,
+            null=True,
+        )
+        recommendation = models.ForeignKey(
+            Recommendation,  # 直接引用模型类
+            on_delete=models.CASCADE,
+            verbose_name='关联推荐',
+            blank=True,
+            null=True,
+        )
+        click_time = models.DateTimeField('点击时间', auto_now_add=True)
+        ip_address = models.GenericIPAddressField('IP地址', blank=True, null=True)
 
-class ClickRecord(models.Model):
-    """用户点击记录"""
-    user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name='所属用户')
-    jewelry = models.ForeignKey('zhubao.JewelryItem', on_delete=models.CASCADE, verbose_name='珠宝商品')
-    clicked_at = models.DateTimeField('点击时间', auto_now_add=True)
-    source = models.CharField('来源', max_length=50,
-                              choices=[('recommendation', '推荐页面'), ('search', '搜索页面'), ('other', '其他')])
-    duration = models.FloatField('停留时长(秒)', default=0.0)
-    recommendation = models.ForeignKey('zhubao.Recommendation', on_delete=models.SET_NULL,
-                                       null=True, blank=True, verbose_name='关联推荐')
+        class Meta:
+            verbose_name = '用户点击记录'
+            verbose_name_plural = '用户点击记录管理'
+            ordering = ['-click_time']
+            db_table = 'user_click_record'
 
-    class Meta:
-        verbose_name = '点击记录'
-        verbose_name_plural = '用户行为追踪'
-        ordering = ['-clicked_at']
-        indexes = [
-            models.Index(fields=['clicked_at']),
-            models.Index(fields=['source']),
-        ]
-
-    def __str__(self):
-        return f"{self.user.username}点击{self.jewelry.name} ({self.clicked_at.strftime('%H:%M')})"
-
+        def __str__(self):
+            return f"{self.user.username}点击了{self.jewelry.name if self.jewelry else '未知珠宝'}"
 
 class FengShuiSetting(models.Model):
     """用户风水设置"""
@@ -81,6 +102,7 @@ class FengShuiSetting(models.Model):
     class Meta:
         verbose_name = '风水设置'
         verbose_name_plural = '风水偏好管理'
+        db_table = 'fengshui_setting'
 
     def __str__(self):
         return f"{self.user.username}的风水设置"

@@ -12,6 +12,7 @@ class JewelryCategory(models.Model):
     class Meta:
         verbose_name = '珠宝分类'
         verbose_name_plural = '珠宝分类管理'
+        db_table = 'jewelry_category'
 
     def __str__(self):
         return self.name
@@ -49,6 +50,7 @@ class JewelryItem(models.Model):
             models.Index(fields=['wuxing']),
             models.Index(fields=['price_tier']),
         ]
+        db_table = 'jewelry_item'
 
     def __str__(self):
         return f"{self.name} ({self.get_wuxing_display()})"
@@ -84,6 +86,7 @@ class Recommendation(models.Model):
             models.Index(fields=['recommend_type']),
             models.Index(fields=['is_viewed']),
         ]
+        db_table = 'jewelry_recommend'
 
     def __str__(self):
         return f"{self.user.username}的{self.get_recommend_type_display()} ({self.recommended_at.strftime('%Y-%m-%d')})"
